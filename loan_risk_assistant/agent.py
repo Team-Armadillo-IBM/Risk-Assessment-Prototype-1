@@ -96,8 +96,21 @@ class LoanRiskAssistant:
         reasons = self._build_reasons(risk_result, resolved_policies)
 
         requested_documents = self._determine_requested_documents(application, risk_result, resolved_policies)
+        document_request: Optional[Dict[str, Any]] = None
         if requested_documents:
-            self.request_additional_docs(requested_documents)
+            document_request = self.request_additional_docs(requested_documents)
+            log_payload: Dict[str, Any] = {
+                "application_id": application.application_id,
+                "requested_documents": requested_documents,
+            }
+            if document_request is not None:
+                log_payload["document_request"] = document_request
+            governance_ids.append(
+                self._log(
+                    "docs_requested",
+                    log_payload,
+                ).log_id
+            )
 
         interest_band = self._determine_interest_band(risk_tier, resolved_policies)
         policy_gap = interest_band is None
@@ -113,6 +126,8 @@ class LoanRiskAssistant:
             "policy_citations": policy_citations,
             "interest_band": asdict(interest_band) if interest_band else None,
         }
+        if document_request is not None:
+            user_packet_payload["document_request"] = document_request
         user_packet = self.compose_user_packet(user_packet_payload)
         governance_ids.append(
             self._log(
@@ -154,6 +169,8 @@ class LoanRiskAssistant:
             "governance_log_ids": governance_ids,
             "user_packet": user_packet,
         }
+        if document_request is not None:
+            response["document_request"] = document_request
 
         return response
 
