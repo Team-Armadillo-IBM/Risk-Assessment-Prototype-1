@@ -95,9 +95,29 @@ class LoanRiskAssistant:
         risk_tier = self._tier_from_score(risk_result.score)
         reasons = self._build_reasons(risk_result, resolved_policies)
 
-        requested_documents = self._determine_requested_documents(application, risk_result, resolved_policies)
+        requested_documents = self._determine_requested_documents(
+            application, risk_result, resolved_policies
+        )
         if requested_documents:
-            self.request_additional_docs(requested_documents)
+            docs_response = self.request_additional_docs(requested_documents)
+            tool_response_id: Optional[str] = None
+            if isinstance(docs_response, dict):
+                for key in ("request_id", "id", "identifier", "response_id", "log_id"):
+                    value = docs_response.get(key)
+                    if value:
+                        tool_response_id = str(value)
+                        break
+
+            governance_ids.append(
+                self._log(
+                    "docs_requested",
+                    {
+                        "application_id": application.application_id,
+                        "requested_documents": requested_documents,
+                        "tool_response_id": tool_response_id,
+                    },
+                ).log_id
+            )
 
         interest_band = self._determine_interest_band(risk_tier, resolved_policies)
         policy_gap = interest_band is None
