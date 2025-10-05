@@ -84,7 +84,7 @@ def _compose_user_packet(data: Dict[str, object]) -> Dict[str, object]:
 
 
 def _request_additional_docs(documents: List[str]) -> Dict[str, object]:
-    return {"requested": documents}
+    return {"requested": documents, "request_id": "doc-req-1"}
 
 
 class _GovernanceLogger:

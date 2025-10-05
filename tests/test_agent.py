@@ -61,7 +61,7 @@ def assistant() -> LoanRiskAssistant:
         return {"format": "html", "content": "ok"}
 
     def _request_additional_docs(documents: List[str]) -> Dict[str, object]:
-        return {"requested": documents}
+        return {"requested": documents, "request_id": "doc-req-1"}
 
     class _GovernanceLogger:
         def __init__(self) -> None:
