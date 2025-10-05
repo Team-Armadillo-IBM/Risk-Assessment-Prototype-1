@@ -58,17 +58,19 @@ def assistant() -> LoanRiskAssistant:
         return {chunk.chunk_id: chunk for chunk in chunks if chunk.chunk_id in ids}
 
     def _compose_user_packet(data: Dict[str, object]) -> Dict[str, object]:
-        return {"format": "html", "content": "ok"}
+        return {"format": "html", "content": "ok", "payload": data}
 
     def _request_additional_docs(documents: List[str]) -> Dict[str, object]:
-        return {"requested": documents, "request_id": "doc-req-1"}
+        return {"requested": documents, "crm_ticket": "CRM-12345"}
 
     class _GovernanceLogger:
         def __init__(self) -> None:
             self.counter = 0
+            self.events: List[Dict[str, object]] = []
 
         def __call__(self, event_type: str, payload: Dict[str, object]) -> GovernanceLogRecord:
             self.counter += 1
+            self.events.append({"event_type": event_type, "payload": payload})
             return GovernanceLogRecord(event_type=event_type, log_id=f"log-{self.counter}")
 
     return LoanRiskAssistant(
@@ -96,5 +98,15 @@ def test_assistant_returns_structured_payload(assistant: LoanRiskAssistant) -> N
     assert response["risk_score"]["tier"] == "Med"
     assert response["interest_rate_suggestion"]["band_apr_percent"] == [6.0, 8.5]
     assert "Collateral ownership evidence" in response["requested_documents"]
+    assert response["document_request"] == {
+        "requested": response["requested_documents"],
+        "crm_ticket": "CRM-12345",
+    }
     assert response["governance_log_ids"]
+    assert len(response["governance_log_ids"]) == 5
     assert response["user_packet"]["format"] == "html"
+    assert response["user_packet"]["payload"].get("document_request") == response["document_request"]
+    assert any(
+        event["event_type"] == "docs_requested" and event["payload"].get("document_request") == response["document_request"]
+        for event in assistant.governance_log.events
+    )
