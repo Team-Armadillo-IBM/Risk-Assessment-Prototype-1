@@ -206,7 +206,34 @@ class LoanRiskAssistant:
         resolved = self.get_policy_by_id([chunk.chunk_id for chunk in policy_chunks])
         output: List[PolicyChunk] = []
         for chunk in policy_chunks:
-            output.append(resolved.get(chunk.chunk_id, chunk))
+            canonical_chunk = resolved.get(chunk.chunk_id)
+            if not canonical_chunk:
+                output.append(chunk)
+                continue
+
+            merged_metadata = dict(canonical_chunk.metadata)
+            for key, value in chunk.metadata.items():
+                if key not in merged_metadata:
+                    merged_metadata[key] = value
+                    continue
+
+                canonical_value = merged_metadata[key]
+                if canonical_value in (None, ""):
+                    merged_metadata[key] = value
+                elif isinstance(canonical_value, list) and not canonical_value:
+                    merged_metadata[key] = value
+                elif isinstance(canonical_value, dict) and not canonical_value:
+                    merged_metadata[key] = value
+
+            output.append(
+                PolicyChunk(
+                    chunk_id=canonical_chunk.chunk_id,
+                    title=canonical_chunk.title,
+                    section=canonical_chunk.section,
+                    text=canonical_chunk.text,
+                    metadata=merged_metadata,
+                )
+            )
         return output
 
     def _build_policy_citations(self, policy_chunks: List[PolicyChunk]) -> List[Dict[str, Any]]:

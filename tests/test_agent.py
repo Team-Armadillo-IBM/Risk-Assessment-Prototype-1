@@ -54,8 +54,16 @@ def assistant() -> LoanRiskAssistant:
         return RiskScoreResult(score=55.0, features=features, reason_codes=reason_codes)
 
     def _get_policy_by_id(ids: List[str]) -> Dict[str, PolicyChunk]:
-        chunks = _policy_retriever("", top_k=len(ids))
-        return {chunk.chunk_id: chunk for chunk in chunks if chunk.chunk_id in ids}
+        return {
+            chunk_id: PolicyChunk(
+                chunk_id=chunk_id,
+                title="SMB Lending Policy (canonical)",
+                section="3.1",
+                text="Loans flagged as medium risk must document collateral and may carry 6%-8.5% APR.",
+                metadata={},
+            )
+            for chunk_id in ids
+        }
 
     def _compose_user_packet(data: Dict[str, object]) -> Dict[str, object]:
         return {"format": "html", "content": "ok", "payload": data}
@@ -98,6 +106,7 @@ def test_assistant_returns_structured_payload(assistant: LoanRiskAssistant) -> N
     assert response["risk_score"]["tier"] == "Med"
     assert response["interest_rate_suggestion"]["band_apr_percent"] == [6.0, 8.5]
     assert "Collateral ownership evidence" in response["requested_documents"]
+    assert "Collateral appraisal report" in response["requested_documents"]
     assert response["document_request"] == {
         "requested": response["requested_documents"],
         "crm_ticket": "CRM-12345",
