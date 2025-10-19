@@ -214,3 +214,9 @@ Run the test suite to validate the orchestration logic and adapters:
 ```bash
 pytest
 ```
+
+## Credits
+
+- Kristopher McCoy – Technical/Team Lead
+- John Paul Guzman – Design and Implementation
+- Troy Resendez – Design and Implementation
